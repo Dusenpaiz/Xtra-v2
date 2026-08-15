@@ -1,14 +1,20 @@
 --========================================================
--- SERVER HOP GUI - FIXED TARGET PLACE
+-- SERVER HOP - TARGET PLACE + AUTO RETURN
 --========================================================
--- Target Place ID: 142823291
+-- Target Place: 142823291
 --
--- 1-5 players
--- Priority: 2 > 3 > 1 > 4 > 5
--- Tìm nhiều server và thử lần lượt
--- Bỏ server hiện tại nếu cùng Place
--- Bỏ server trước đó nếu có
--- Teleport fail / full / shutdown / timeout -> server khác
+-- Ưu tiên:
+-- 2 > 3 > 1 > 4 > 5 players
+--
+-- Nếu đang ở Place khác:
+-- -> tự quay lại Target Place
+--
+-- Nếu đang ở Target Place:
+-- -> không tự hop
+-- -> chỉ hop khi bấm Server Hop
+--
+-- Nếu game redirect sang Place khác:
+-- -> lần chạy tiếp theo sẽ tự quay lại Target Place
 --========================================================
 
 local Players = game:GetService("Players")
@@ -23,25 +29,17 @@ local LocalPlayer = Players.LocalPlayer
 -- CONFIG
 --========================================================
 
--- PLACE ID MỤC TIÊU
 local TARGET_PLACE_ID = 142823291
 
 local MIN_PLAYERS = 1
 local MAX_PLAYERS = 5
 
--- Tối đa quét 10 trang
 local MAX_PAGES = 10
-
--- Tối đa thử 20 server
 local MAX_ATTEMPTS = 20
 
--- Thời gian chờ teleport
 local TELEPORT_TIMEOUT = 8
-
--- Hết server thì đợi bao lâu để quét lại
 local RETRY_DELAY = 2
 
--- Thứ tự ưu tiên
 local PRIORITY = {
     2,
     3,
@@ -51,10 +49,12 @@ local PRIORITY = {
 }
 
 --========================================================
--- LAST SERVER
+-- TELEPORT DATA
 --========================================================
 
 local LastServer = {}
+
+local TeleportData = {}
 
 pcall(function()
 
@@ -62,7 +62,13 @@ pcall(function()
         TeleportService:GetLocalPlayerTeleportData()
 
     if type(data) == "table" then
-        LastServer = data
+
+        TeleportData = data
+
+        if type(data.lastServer) == "table" then
+            LastServer = data.lastServer
+        end
+
     end
 
 end)
@@ -158,10 +164,10 @@ local Status = Instance.new("TextLabel")
 Status.Name = "Status"
 
 Status.Size =
-    UDim2.new(0, 250, 0, 25)
+    UDim2.new(0, 280, 0, 25)
 
 Status.Position =
-    UDim2.new(1, -260, 0.5, 27)
+    UDim2.new(1, -290, 0.5, 27)
 
 Status.BackgroundTransparency = 1
 
@@ -183,7 +189,7 @@ Status.ZIndex = 100
 Status.Parent = ScreenGui
 
 --========================================================
--- DRAG BUTTON
+-- DRAG
 --========================================================
 
 local dragging = false
@@ -207,7 +213,7 @@ local function updateButton(input)
     Status.Position =
         UDim2.new(
             HopButton.Position.X.Scale,
-            HopButton.Position.X.Offset - 160,
+            HopButton.Position.X.Offset - 190,
 
             HopButton.Position.Y.Scale,
             HopButton.Position.Y.Offset + 47
@@ -219,6 +225,7 @@ HopButton.InputBegan:Connect(function(input)
 
     if input.UserInputType ==
         Enum.UserInputType.MouseButton1
+
         or input.UserInputType ==
         Enum.UserInputType.Touch then
 
@@ -250,6 +257,7 @@ UserInputService.InputChanged:Connect(function(input)
 
     if input.UserInputType ==
         Enum.UserInputType.MouseMovement
+
         or input.UserInputType ==
         Enum.UserInputType.Touch then
 
@@ -260,7 +268,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 --========================================================
--- GET SERVER LIST
+-- GET SERVERS
 --========================================================
 
 local function GetServers()
@@ -271,7 +279,6 @@ local function GetServers()
 
     for page = 1, MAX_PAGES do
 
-        -- LUÔN LẤY SERVER CỦA TARGET_PLACE_ID
         local url =
             "https://games.roblox.com/v1/games/"
             .. tostring(TARGET_PLACE_ID)
@@ -296,7 +303,7 @@ local function GetServers()
         if not success then
 
             warn(
-                "[ServerHop] HttpGet failed:",
+                "[ServerHop] HTTP failed:",
                 response
             )
 
@@ -304,14 +311,14 @@ local function GetServers()
 
         end
 
-        local decodeSuccess, data =
+        local ok, data =
             pcall(function()
 
                 return HttpService:JSONDecode(response)
 
             end)
 
-        if not decodeSuccess or not data then
+        if not ok or not data then
 
             warn(
                 "[ServerHop] JSON decode failed"
@@ -325,15 +332,14 @@ local function GetServers()
 
             for _, server in ipairs(data.data) do
 
-                local isCurrentServer = false
-                local isLastServer = false
+                local current = false
+                local previous = false
 
-                -- Chỉ so sánh JobId hiện tại nếu
-                -- đang ở đúng Target Place
+                -- Nếu hiện tại đang ở Target Place
                 if game.PlaceId == TARGET_PLACE_ID then
 
                     if server.id == game.JobId then
-                        isCurrentServer = true
+                        current = true
                     end
 
                 end
@@ -343,17 +349,13 @@ local function GetServers()
                 and LastServer.placeId == TARGET_PLACE_ID
                 and LastServer.id == server.id then
 
-                    isLastServer = true
+                    previous = true
 
                 end
 
-                --================================================
-                -- FILTER
-                --================================================
-
                 if server.id
-                and not isCurrentServer
-                and not isLastServer
+                and not current
+                and not previous
 
                 and server.playing
                 and server.playing >= MIN_PLAYERS
@@ -389,7 +391,7 @@ local function GetServers()
 end
 
 --========================================================
--- SORT SERVER
+-- SORT
 --========================================================
 
 local function SortServers(servers)
@@ -419,7 +421,7 @@ local function SortServers(servers)
 end
 
 --========================================================
--- TELEPORT FAILED DETECTION
+-- TELEPORT FAILED
 --========================================================
 
 local teleportFailed = false
@@ -427,13 +429,18 @@ local teleportFailureReason = ""
 local teleportTargetId = nil
 
 TeleportService.TeleportInitFailed:Connect(
-    function(player, result, message, placeId, instanceId)
+    function(
+        player,
+        result,
+        message,
+        placeId,
+        instanceId
+    )
 
         if player ~= LocalPlayer then
             return
         end
 
-        -- Chỉ xử lý teleport tới Target Place
         if placeId ~= TARGET_PLACE_ID then
             return
         end
@@ -454,7 +461,7 @@ TeleportService.TeleportInitFailed:Connect(
             .. tostring(message)
 
         warn(
-            "[ServerHop] TeleportInitFailed:",
+            "[ServerHop] Teleport failed:",
             teleportFailureReason
         )
 
@@ -462,7 +469,7 @@ TeleportService.TeleportInitFailed:Connect(
 )
 
 --========================================================
--- SERVER HOP
+-- HOP
 --========================================================
 
 local hopping = false
@@ -476,16 +483,10 @@ local function ServerHop()
     hopping = true
 
     HopButton.Active = false
-
-    HopButton.Text =
-        "Searching..."
+    HopButton.Text = "Searching..."
 
     Status.Text =
-        "Finding servers..."
-
-    --====================================================
-    -- GET SERVERS
-    --====================================================
+        "Finding Target servers..."
 
     local servers =
         GetServers()
@@ -494,9 +495,6 @@ local function ServerHop()
 
         Status.Text =
             "No server, retrying..."
-
-        HopButton.Text =
-            "Searching..."
 
         task.wait(RETRY_DELAY)
 
@@ -508,16 +506,8 @@ local function ServerHop()
 
     end
 
-    --====================================================
-    -- SORT
-    --====================================================
-
     local sorted =
         SortServers(servers)
-
-    --====================================================
-    -- LIMIT ATTEMPTS
-    --====================================================
 
     local attempts =
         math.min(
@@ -532,10 +522,6 @@ local function ServerHop()
 
     task.wait(0.3)
 
-    --====================================================
-    -- TRY SERVER
-    --====================================================
-
     for i = 1, attempts do
 
         local target =
@@ -545,7 +531,6 @@ local function ServerHop()
             break
         end
 
-        -- Reset teleport status
         teleportFailed = false
         teleportFailureReason = ""
         teleportTargetId = target.id
@@ -563,63 +548,55 @@ local function ServerHop()
             "Teleport..."
 
         print(
-            "[ServerHop] Trying:",
+            "[ServerHop] Target:",
             target.id,
-            "-",
             target.playing,
             "players"
         )
 
-        --================================================
-        -- TELEPORT
-        --================================================
-
-        local success, errorMessage =
+        local success, err =
             pcall(function()
 
-                -- LUÔN TELEPORT TỚI TARGET_PLACE_ID
                 TeleportService:TeleportToPlaceInstance(
                     TARGET_PLACE_ID,
                     target.id,
                     LocalPlayer,
-
-                    -- Lưu server mục tiêu
                     {
-                        id = target.id,
-                        placeId = TARGET_PLACE_ID
+                        lastServer = {
+                            id = target.id,
+                            placeId = TARGET_PLACE_ID
+                        },
+
+                        targetPlaceId =
+                            TARGET_PLACE_ID,
+
+                        returnToTarget = true
                     }
                 )
 
             end)
 
-        --================================================
-        -- TELEPORT CALL FAILED
-        --================================================
-
         if not success then
 
             warn(
-                "[ServerHop] Teleport call failed:",
-                errorMessage
+                "[ServerHop] Teleport error:",
+                err
             )
 
             Status.Text =
-                "Failed, next server..."
+                "Failed, next..."
 
             task.wait(0.5)
 
         else
 
-            --============================================
-            -- WAIT FOR TELEPORT RESULT
-            --============================================
-
-            local startTime =
+            local start =
                 os.clock()
 
             while
-                os.clock() - startTime
+                os.clock() - start
                 < TELEPORT_TIMEOUT
+
             do
 
                 if teleportFailed then
@@ -630,31 +607,15 @@ local function ServerHop()
 
             end
 
-            --============================================
-            -- TELEPORT FAILED
-            --============================================
-
             if teleportFailed then
-
-                warn(
-                    "[ServerHop] Server unavailable:",
-                    target.id,
-                    teleportFailureReason
-                )
 
                 Status.Text =
                     "Server failed, next..."
 
             else
 
-                -- Chưa chuyển server sau timeout
-                warn(
-                    "[ServerHop] Teleport timeout:",
-                    target.id
-                )
-
                 Status.Text =
-                    "Timeout, next server..."
+                    "Teleport timeout..."
 
             end
 
@@ -666,33 +627,65 @@ local function ServerHop()
 
     end
 
-    --====================================================
-    -- ALL ATTEMPTS FAILED
-    --====================================================
-
     Status.Text =
         "All failed, rescanning..."
 
     HopButton.Text =
         "Searching..."
 
-    print(
-        "[ServerHop] All attempts failed. Retrying in",
-        RETRY_DELAY,
-        "seconds..."
-    )
-
     task.wait(RETRY_DELAY)
 
     hopping = false
 
-    -- Quét lại danh sách server
     task.spawn(ServerHop)
 
 end
 
 --========================================================
--- BUTTON CLICK
+-- AUTO RETURN
+--========================================================
+-- Nếu script khởi chạy ở Place khác,
+-- tự động quay lại Target Place.
+
+local function AutoReturnToTarget()
+
+    if game.PlaceId == TARGET_PLACE_ID then
+
+        return
+
+    end
+
+    -- Chỉ tự quay lại nếu TeleportData
+    -- cho biết chúng ta đang muốn ở Target Place.
+
+    if TeleportData
+    and TeleportData.returnToTarget
+    and TeleportData.targetPlaceId ==
+        TARGET_PLACE_ID then
+
+        Status.Text =
+            "Redirected! Returning..."
+
+        HopButton.Text =
+            "Returning..."
+
+        task.wait(1)
+
+        pcall(function()
+
+            TeleportService:Teleport(
+                TARGET_PLACE_ID,
+                LocalPlayer
+            )
+
+        end)
+
+    end
+
+end
+
+--========================================================
+-- BUTTON
 --========================================================
 
 HopButton.MouseButton1Click:Connect(function()
@@ -702,30 +695,34 @@ HopButton.MouseButton1Click:Connect(function()
 end)
 
 --========================================================
--- READY
+-- START
 --========================================================
 
 print("================================")
-print(" Server Hop GUI loaded")
-print(" Target Place ID:", TARGET_PLACE_ID)
-print(" Players: 1-5")
+print(" Server Hop loaded")
+print(" Target Place:", TARGET_PLACE_ID)
+print(" Current Place:", game.PlaceId)
 print(" Priority: 2 > 3 > 1 > 4 > 5")
-print(" Max pages:", MAX_PAGES)
-print(" Max attempts:", MAX_ATTEMPTS)
-print(" Teleport timeout:", TELEPORT_TIMEOUT)
-print(" Retry delay:", RETRY_DELAY)
 print("================================")
 
-Status.Text =
-    "Target: " .. tostring(TARGET_PLACE_ID)
+if game.PlaceId == TARGET_PLACE_ID then
 
-task.delay(3, function()
+    Status.Text =
+        "Target Place OK"
 
-    if Status
-    and Status.Parent then
+    task.delay(2, function()
 
-        Status.Text = ""
+        if Status.Parent then
+            Status.Text = ""
+        end
 
-    end
+    end)
 
-end)
+else
+
+    Status.Text =
+        "Not Target Place"
+
+    task.spawn(AutoReturnToTarget)
+
+end
