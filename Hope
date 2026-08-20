@@ -1,4 +1,4 @@
-Local Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
@@ -28,21 +28,21 @@ local function ServerHop()
         local servers = {}
 
         for _, server in ipairs(result.data) do
-    if server.playing < server.maxPlayers
-    and server.id ~= JobId
-    and server.id ~= LastServer.id then
-        table.insert(servers, server.id)
-    end
-end
+            if server.playing < server.maxPlayers
+            and server.id ~= JobId
+            and server.id ~= LastServer.id then
+                table.insert(servers, server.id)
+            end
+        end
 
         if #servers > 0 then
             local target = servers[math.random(#servers)]
             TeleportService:TeleportToPlaceInstance(
-    PlaceId,
-    target,
-    LocalPlayer,
-    {id = JobId}
-)
+                PlaceId,
+                target,
+                LocalPlayer,
+                {id = JobId}
+            )
         end
     end
 end
@@ -51,9 +51,9 @@ end
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CustomMenuGUI"
 screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global  -- ✅ Cho phép đè lên GUI khác
-screenGui.DisplayOrder = 9999  -- ✅ Ưu tiên cao nhất
-screenGui.IgnoreGuiInset = true  -- ✅ Không bị lệch bởi topbar trên mobile
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+screenGui.DisplayOrder = 9999
+screenGui.IgnoreGuiInset = true
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Nút nhỏ mở menu
@@ -61,15 +61,16 @@ local toggleButton = Instance.new("ImageButton")
 toggleButton.Size = UDim2.new(0, 50, 0, 50)
 toggleButton.Position = UDim2.new(0.5, -25, 0.5, -25)
 toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-toggleButton.Image = "rbxassetid://97165188431062"
+toggleButton.Image = "rbxassetid://98183807650041"
 toggleButton.ImageRectOffset = Vector2.new(0, 0)
 toggleButton.ImageRectSize = Vector2.new(0, 0)
 toggleButton.BackgroundTransparency = 1
 toggleButton.Parent = screenGui
+
 -- Viền tím cho nút nhỏ
 local buttonStroke = Instance.new("UIStroke")
 buttonStroke.Thickness = 3
-buttonStroke.Color = Color3.fromRGB(120, 0, 255)  -- tím cùng tone với menu
+buttonStroke.Color = Color3.fromRGB(120, 0, 255)
 buttonStroke.Transparency = 0
 buttonStroke.Parent = toggleButton
 
@@ -82,28 +83,25 @@ local menuFrame = Instance.new("Frame")
 menuFrame.Size = UDim2.new(0, 220, 0, 240)
 menuFrame.Position = UDim2.new(0.5, -110, 0.5, -90)
 menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+menuFrame.BackgroundTransparency = 1
 menuFrame.Visible = true
-menuFrame.ClipsDescendants = true  -- Bo tròn góc hình nền
 menuFrame.Parent = screenGui
 
--- 🌟 HÌNH NỀN MENU MAIN
+-- ====== HÌNH NỀN MENU ======
 local menuBackground = Instance.new("ImageLabel")
 menuBackground.Name = "MenuBackground"
 menuBackground.Size = UDim2.new(1, 0, 1, 0)
 menuBackground.Position = UDim2.new(0, 0, 0, 0)
 menuBackground.BackgroundTransparency = 1
 menuBackground.Image = "rbxassetid://126207914053644"
+menuBackground.ImageTransparency = 0
 menuBackground.ScaleType = Enum.ScaleType.Crop
-menuBackground.ZIndex = 1
+menuBackground.ZIndex = 0
 menuBackground.Parent = menuFrame
 
--- Lớp phủ tối để các chữ dễ đọc hơn
-local imageOverlay = Instance.new("Frame")
-imageOverlay.Size = UDim2.new(1, 0, 1, 0)
-imageOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-imageOverlay.BackgroundTransparency = 0.45
-imageOverlay.ZIndex = 2
-imageOverlay.Parent = menuFrame
+local backgroundCorner = Instance.new("UICorner")
+backgroundCorner.CornerRadius = UDim.new(0, 12)
+backgroundCorner.Parent = menuBackground
 
 local menuCorner = Instance.new("UICorner")
 menuCorner.CornerRadius = UDim.new(0, 12)
@@ -122,7 +120,6 @@ title.Text = "Sì Trây"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.SourceSansBold
-title.ZIndex = 3
 title.Parent = menuFrame
 
 local titleCorner = Instance.new("UICorner")
@@ -138,6 +135,7 @@ end)
 
 -- Drag nút nhỏ
 local dragging, dragInput, dragStart, startPos
+
 local function update(input)
     local delta = input.Position - dragStart
     toggleButton.Position = UDim2.new(
@@ -145,51 +143,75 @@ local function update(input)
         startPos.Y.Scale, startPos.Y.Offset + delta.Y
     )
 end
+
 toggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
         dragging = true
         dragStart = input.Position
         startPos = toggleButton.Position
+
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
         end)
     end
 end)
+
 toggleButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
         dragInput = input
     end
 end)
+
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then update(input) end
+    if input == dragInput and dragging then
+        update(input)
+    end
 end)
 
 -- Drag menu qua tiêu đề
 local menuDragging, menuDragInput, menuDragStart, menuStartPos
+
 local function updateMenu(input)
     local delta = input.Position - menuDragStart
+
     menuFrame.Position = UDim2.new(
         menuStartPos.X.Scale, menuStartPos.X.Offset + delta.X,
         menuStartPos.Y.Scale, menuStartPos.Y.Offset + delta.Y
     )
 end
+
 title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
         menuDragging = true
         menuDragStart = input.Position
         menuStartPos = menuFrame.Position
+
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then menuDragging = false end
+            if input.UserInputState == Enum.UserInputState.End then
+                menuDragging = false
+            end
         end)
     end
 end)
+
 title.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
         menuDragInput = input
     end
 end)
+
 UserInputService.InputChanged:Connect(function(input)
-    if input == menuDragInput and menuDragging then updateMenu(input) end
+    if input == menuDragInput and menuDragging then
+        updateMenu(input)
+    end
 end)
 
 -- ====== FARM (AutoFarm) ======
@@ -206,21 +228,29 @@ end
 local function findNearestCoin()
     local character = LocalPlayer.Character
     if not character then return nil end
+
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
+
     local container = getCoins()
     if not container then return nil end
 
     local nearest, dist = nil, math.huge
+
     for _, coin in pairs(container:GetChildren()) do
-        if coin:IsA("BasePart") and coin.Parent and coin:IsDescendantOf(workspace) then
+        if coin:IsA("BasePart")
+        and coin.Parent
+        and coin:IsDescendantOf(workspace) then
+
             local d = (hrp.Position - coin.Position).Magnitude
+
             if d < dist then
                 dist = d
                 nearest = coin
             end
         end
     end
+
     return nearest
 end
 
@@ -229,6 +259,7 @@ local function moveToCoin(coin)
     if not character then return end
 
     local hrp = character:FindFirstChild("HumanoidRootPart")
+
     if not hrp or not coin or not coin.Parent then
         return
     end
@@ -240,7 +271,7 @@ local function moveToCoin(coin)
     local tween = TweenService:Create(
         hrp,
         TweenInfo.new(time, Enum.EasingStyle.Linear),
-        {CFrame = coin.CFrame + Vector3.new(0,3,0)}
+        {CFrame = coin.CFrame + Vector3.new(0, 3, 0)}
     )
 
     tween:Play()
@@ -264,6 +295,7 @@ end
 local function autoFarm()
     while farming do
         local coin = findNearestCoin()
+
         if coin then
             moveToCoin(coin)
         else
@@ -282,14 +314,12 @@ farmLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 farmLabel.Font = Enum.Font.Gotham
 farmLabel.TextSize = 16
 farmLabel.TextXAlignment = Enum.TextXAlignment.Left
-farmLabel.ZIndex = 3
 farmLabel.Parent = menuFrame
 
 local toggleFrame = Instance.new("Frame")
 toggleFrame.Size = UDim2.new(0, 50, 0, 25)
 toggleFrame.Position = UDim2.new(1, -60, 0, 60)
 toggleFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-toggleFrame.ZIndex = 3
 toggleFrame.Parent = menuFrame
 toggleFrame.BorderSizePixel = 0
 
@@ -301,7 +331,6 @@ local knob = Instance.new("Frame")
 knob.Size = UDim2.new(0, 21, 0, 21)
 knob.Position = UDim2.new(0, 2, 0, 2)
 knob.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-knob.ZIndex = 4
 knob.Parent = toggleFrame
 knob.BorderSizePixel = 0
 
@@ -318,52 +347,84 @@ toggleStroke.Parent = toggleFrame
 -- Function đổi trạng thái toggle
 local function setToggle(state)
     if state then
-        TweenService:Create(toggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(150, 80, 255)}):Play()
-        TweenService:Create(knob, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Position = UDim2.new(1, -23, 0, 2), BackgroundColor3 = Color3.fromRGB(255,255,255)}):Play()
+        TweenService:Create(
+            toggleFrame,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quad),
+            {
+                BackgroundColor3 = Color3.fromRGB(150, 80, 255)
+            }
+        ):Play()
+
+        TweenService:Create(
+            knob,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quad),
+            {
+                Position = UDim2.new(1, -23, 0, 2),
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            }
+        ):Play()
     else
-        TweenService:Create(toggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}):Play()
-        TweenService:Create(knob, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Position = UDim2.new(0, 2, 0, 2), BackgroundColor3 = Color3.fromRGB(200,200,200)}):Play()
+        TweenService:Create(
+            toggleFrame,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quad),
+            {
+                BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+            }
+        ):Play()
+
+        TweenService:Create(
+            knob,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quad),
+            {
+                Position = UDim2.new(0, 2, 0, 2),
+                BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+            }
+        ):Play()
     end
 end
 
 -- Click toggle
 toggleFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
         farming = not farming
         setToggle(farming)
+
         if farming then
             task.spawn(autoFarm)
         end
     end
 end)
 
-setToggle(true) --(On)
+setToggle(true)
 farming = true
 task.spawn(autoFarm)
 
-
 -- ====== Coin Counter GUI (gắn vào menuFrame) ======
 _G.TotalCoinsFarmed = _G.TotalCoinsFarmed or 0
+
 local startCheckTime = tick()
 local startCoinCount = _G.TotalCoinsFarmed
 local lastCoinTime = tick()
 
 local function setupCoinGUI()
     local label = menuFrame:FindFirstChild("CoinLabel")
+
     if not label then
         label = Instance.new("TextLabel")
         label.Name = "CoinLabel"
         label.Size = UDim2.new(1, -20, 0, 30)
         label.Position = UDim2.new(0, 10, 0, 170)
-        label.BackgroundColor3 = Color3.fromRGB(30,30,30)
+        label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         label.BackgroundTransparency = 0.2
-        label.TextColor3 = Color3.fromRGB(255,255,0)
+        label.TextColor3 = Color3.fromRGB(255, 255, 0)
         label.TextSize = 16
         label.Font = Enum.Font.SourceSansBold
         label.Text = "Coins: 0/40 | Total: 0"
-        label.ZIndex = 3
         label.Parent = menuFrame
     end
+
     return label
 end
 
@@ -386,26 +447,43 @@ local function hookGameCoinLabel(label)
         :WaitForChild("Icon")
         :WaitForChild("Coins")
 
-
     local lastAmount = tonumber(coinLabel.Text) or 0
 
     local function updateCoins()
         local amount = tonumber(coinLabel.Text) or 0
+
         if amount > lastAmount then
-    _G.TotalCoinsFarmed += (amount - lastAmount)
-    lastCoinTime = tick() -- Reset khi vừa nhặt được coin
-end
+            _G.TotalCoinsFarmed += (amount - lastAmount)
+            lastCoinTime = tick()
+        end
+
         lastAmount = amount
 
-        label.Text = "Coins: " .. amount .. "/40 | Total: " .. _G.TotalCoinsFarmed
+        label.Text =
+            "Coins: " ..
+            amount ..
+            "/40 | Total: " ..
+            _G.TotalCoinsFarmed
 
         if amount >= 40 then
-            label.TextColor3 = Color3.fromRGB(255,0,0)
-            label.Text = "FULL! ("..amount.."/40) | Total: " .. _G.TotalCoinsFarmed .. " - Resetting..."
-            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then humanoid.Health = 0 end
+            label.TextColor3 = Color3.fromRGB(255, 0, 0)
+
+            label.Text =
+                "FULL! (" ..
+                amount ..
+                "/40) | Total: " ..
+                _G.TotalCoinsFarmed ..
+                " - Resetting..."
+
+            local humanoid =
+                LocalPlayer.Character and
+                LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+
+            if humanoid then
+                humanoid.Health = 0
+            end
         else
-            label.TextColor3 = Color3.fromRGB(0,255,0)
+            label.TextColor3 = Color3.fromRGB(0, 255, 0)
         end
     end
 
@@ -421,12 +499,14 @@ task.spawn(function()
             hookGameCoinLabel(coinLabelUI)
             break
         end
+
         task.wait(1)
     end
 end)
 
 -- ====== TIMER GUI ======
-local startTime = tick()  -- Ghi thời điểm bật script
+local startTime = tick()
+
 local timerLabel = Instance.new("TextLabel")
 timerLabel.Name = "TimerLabel"
 timerLabel.Size = UDim2.new(1, -20, 0, 30)
@@ -437,10 +517,9 @@ timerLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
 timerLabel.TextSize = 16
 timerLabel.Font = Enum.Font.SourceSansBold
 timerLabel.Text = "Time: 00:00:00"
-timerLabel.ZIndex = 3
 timerLabel.Parent = menuFrame
 
--- ====== COIN PER HOUR (Tốc độ farm trung bình) ======
+-- ====== COIN PER HOUR ======
 local rateLabel = Instance.new("TextLabel")
 rateLabel.Name = "RateLabel"
 rateLabel.Size = UDim2.new(1, -20, 0, 30)
@@ -451,7 +530,6 @@ rateLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 rateLabel.TextSize = 16
 rateLabel.Font = Enum.Font.SourceSansBold
 rateLabel.Text = "Rate: 0 / hour"
-rateLabel.ZIndex = 3
 rateLabel.Parent = menuFrame
 
 -- Cập nhật tốc độ trung bình mỗi giây
@@ -461,10 +539,16 @@ task.spawn(function()
         local hours = elapsed / 3600
         local total = _G.TotalCoinsFarmed or 0
         local rate = 0
+
         if hours > 0 then
             rate = total / hours
         end
-        rateLabel.Text = string.format("Rate: %.1f / hour", rate)
+
+        rateLabel.Text = string.format(
+            "Rate: %.1f / hour",
+            rate
+        )
+
         if rate < 100 then
             rateLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
         elseif rate < 500 then
@@ -479,10 +563,17 @@ end)
 task.spawn(function()
     while task.wait(1) do
         local elapsed = tick() - startTime
+
         local hours = math.floor(elapsed / 3600)
         local minutes = math.floor((elapsed % 3600) / 60)
         local seconds = math.floor(elapsed % 60)
-        timerLabel.Text = string.format("Time: %02d:%02d:%02d", hours, minutes, seconds)
+
+        timerLabel.Text = string.format(
+            "Time: %02d:%02d:%02d",
+            hours,
+            minutes,
+            seconds
+        )
     end
 end)
 
@@ -497,6 +588,7 @@ LocalPlayer.CharacterAdded:Connect(function()
                 hookGameCoinLabel(label)
                 break
             end
+
             task.wait(1)
         end
     end)
@@ -513,31 +605,31 @@ totalCoinLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
 totalCoinLabel.TextSize = 16
 totalCoinLabel.Font = Enum.Font.SourceSansBold
 totalCoinLabel.Text = "Coin Bag: Load..."
-totalCoinLabel.ZIndex = 3
 totalCoinLabel.Parent = menuFrame
 
 -- Cập nhật số coin hiển thị theo GUI
 task.spawn(function()
-	while task.wait(10) do
-		local success, label = pcall(function()
-			return LocalPlayer:WaitForChild("PlayerGui")
-				:WaitForChild("CrossPlatform")
-				:WaitForChild("Shop")
-				:WaitForChild("Small")
-				:WaitForChild("Container")
-				:WaitForChild("Title")
-				:WaitForChild("Container")
-				:WaitForChild("Coins")
-				:WaitForChild("Container")
-				:WaitForChild("Amount")
-		end)
+    while task.wait(10) do
 
-		if success and label and label.Text then
-			totalCoinLabel.Text = "Coin Bag: " .. label.Text
-		else
-			totalCoinLabel.Text = "Coin Bag: ???"
-		end
-	end
+        local success, label = pcall(function()
+            return LocalPlayer:WaitForChild("PlayerGui")
+                :WaitForChild("CrossPlatform")
+                :WaitForChild("Shop")
+                :WaitForChild("Small")
+                :WaitForChild("Container")
+                :WaitForChild("Title")
+                :WaitForChild("Container")
+                :WaitForChild("Coins")
+                :WaitForChild("Container")
+                :WaitForChild("Amount")
+        end)
+
+        if success and label and label.Text then
+            totalCoinLabel.Text = "Coin Bag: " .. label.Text
+        else
+            totalCoinLabel.Text = "Coin Bag: ???"
+        end
+    end
 end)
 
 task.spawn(function()
@@ -557,16 +649,20 @@ task.spawn(function()
             ServerHop()
         end
 
-
         -- ==========================================
         -- KIỂM TRA MỖI CHU KỲ 10 PHÚT
         -- ==========================================
         if tick() - startCheckTime >= 600 then
 
-            local gained = _G.TotalCoinsFarmed - startCoinCount
+            local gained =
+                _G.TotalCoinsFarmed - startCoinCount
 
             if gained < 70 then
-                warn("Only "..gained.." coins in 10 minutes. Server Hop...")
+                warn(
+                    "Only " ..
+                    gained ..
+                    " coins in 10 minutes. Server Hop..."
+                )
 
                 -- Reset ngay khi kích hoạt Hop
                 startCheckTime = tick()
