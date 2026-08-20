@@ -1,4 +1,4 @@
-local Players = game:GetService("Players")
+Local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
@@ -83,7 +83,27 @@ menuFrame.Size = UDim2.new(0, 220, 0, 240)
 menuFrame.Position = UDim2.new(0.5, -110, 0.5, -90)
 menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 menuFrame.Visible = true
+menuFrame.ClipsDescendants = true  -- Bo tròn góc hình nền
 menuFrame.Parent = screenGui
+
+-- 🌟 HÌNH NỀN MENU MAIN
+local menuBackground = Instance.new("ImageLabel")
+menuBackground.Name = "MenuBackground"
+menuBackground.Size = UDim2.new(1, 0, 1, 0)
+menuBackground.Position = UDim2.new(0, 0, 0, 0)
+menuBackground.BackgroundTransparency = 1
+menuBackground.Image = "rbxassetid://126207914053644"
+menuBackground.ScaleType = Enum.ScaleType.Crop
+menuBackground.ZIndex = 1
+menuBackground.Parent = menuFrame
+
+-- Lớp phủ tối để các chữ dễ đọc hơn
+local imageOverlay = Instance.new("Frame")
+imageOverlay.Size = UDim2.new(1, 0, 1, 0)
+imageOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+imageOverlay.BackgroundTransparency = 0.45
+imageOverlay.ZIndex = 2
+imageOverlay.Parent = menuFrame
 
 local menuCorner = Instance.new("UICorner")
 menuCorner.CornerRadius = UDim.new(0, 12)
@@ -102,6 +122,7 @@ title.Text = "Sì Trây"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.SourceSansBold
+title.ZIndex = 3
 title.Parent = menuFrame
 
 local titleCorner = Instance.new("UICorner")
@@ -261,12 +282,14 @@ farmLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 farmLabel.Font = Enum.Font.Gotham
 farmLabel.TextSize = 16
 farmLabel.TextXAlignment = Enum.TextXAlignment.Left
+farmLabel.ZIndex = 3
 farmLabel.Parent = menuFrame
 
 local toggleFrame = Instance.new("Frame")
 toggleFrame.Size = UDim2.new(0, 50, 0, 25)
 toggleFrame.Position = UDim2.new(1, -60, 0, 60)
 toggleFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+toggleFrame.ZIndex = 3
 toggleFrame.Parent = menuFrame
 toggleFrame.BorderSizePixel = 0
 
@@ -278,6 +301,7 @@ local knob = Instance.new("Frame")
 knob.Size = UDim2.new(0, 21, 0, 21)
 knob.Position = UDim2.new(0, 2, 0, 2)
 knob.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+knob.ZIndex = 4
 knob.Parent = toggleFrame
 knob.BorderSizePixel = 0
 
@@ -337,6 +361,7 @@ local function setupCoinGUI()
         label.TextSize = 16
         label.Font = Enum.Font.SourceSansBold
         label.Text = "Coins: 0/40 | Total: 0"
+        label.ZIndex = 3
         label.Parent = menuFrame
     end
     return label
@@ -400,13 +425,6 @@ task.spawn(function()
     end
 end)
 
--- 🌟 Thêm sau phần hookGameCoinLabel(coinLabelUI)
--- (Dán ngay bên dưới dòng “hookGameCoinLabel(coinLabelUI)”)
-------------------------------------------------------
-
--- 🌟 Thêm sau phần hookGameCoinLabel(coinLabelUI)
-------------------------------------------------------
-
 -- ====== TIMER GUI ======
 local startTime = tick()  -- Ghi thời điểm bật script
 local timerLabel = Instance.new("TextLabel")
@@ -419,7 +437,9 @@ timerLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
 timerLabel.TextSize = 16
 timerLabel.Font = Enum.Font.SourceSansBold
 timerLabel.Text = "Time: 00:00:00"
+timerLabel.ZIndex = 3
 timerLabel.Parent = menuFrame
+
 -- ====== COIN PER HOUR (Tốc độ farm trung bình) ======
 local rateLabel = Instance.new("TextLabel")
 rateLabel.Name = "RateLabel"
@@ -431,6 +451,7 @@ rateLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 rateLabel.TextSize = 16
 rateLabel.Font = Enum.Font.SourceSansBold
 rateLabel.Text = "Rate: 0 / hour"
+rateLabel.ZIndex = 3
 rateLabel.Parent = menuFrame
 
 -- Cập nhật tốc độ trung bình mỗi giây
@@ -492,6 +513,7 @@ totalCoinLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
 totalCoinLabel.TextSize = 16
 totalCoinLabel.Font = Enum.Font.SourceSansBold
 totalCoinLabel.Text = "Coin Bag: Load..."
+totalCoinLabel.ZIndex = 3
 totalCoinLabel.Parent = menuFrame
 
 -- Cập nhật số coin hiển thị theo GUI
